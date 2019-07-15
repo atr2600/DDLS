@@ -11,6 +11,8 @@ import string
 import time
 from datetime import timedelta
 
+host='10.1.1.12'
+
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
 # the best option based on installed packages.
@@ -40,7 +42,6 @@ def background_thread():
 
 @app.route('/')
 def index():
-    host = '127.0.0.1'
     # print(activeUsers)
     # if 'username' not in session:
     print("hello")
@@ -51,7 +52,7 @@ def index():
     port = session['port']
     session['name'] = randomStringDigits(10)
     name = session['name']
-    startDocker = 'docker run -d --name ' + str(name) + ' -p ' + str(port) + ':6901 consol/ubuntu-xfce-vnc'
+    startDocker = 'docker run -d --name ' + str(name) + ' -it --user 0 -p ' + str(port) + ':6901 atr2600/testdock'
     killDocker = '(sleep 60m; docker rm -f ' + name + ') &'
     os.system(startDocker)
     time.sleep(1)
@@ -106,4 +107,4 @@ def test_disconnect():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=44564)
+    socketio.run(app, debug=True, host=host, port=5000)
