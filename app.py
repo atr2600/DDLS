@@ -18,12 +18,20 @@ def randomStringDigits(stringLength=10):
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join(random.choice(lettersAndDigits) for i in range(stringLength))
 
-usedPorts = []
+portlist = list(range(30000,50000))
+random.shuffle(portlist)
+portcount = 0
 
 host='127.0.0.1'
 @app.route('/')
 def index():
+    global portcount
+    if portcount is 19995:
+        portcount = 0
     dockercount = int(subprocess.check_output("sudo docker container ls --all | wc -l",shell=True).decode("utf-8"))
+    #Sorry all out of containers html page... Create one!!
+    if(dockercount>50):
+        return render_template('index.html')
     # print(activeUsers)
     if 'username' in session:
         # return render_template('index.html', async_mode=socketio.async_mode, iframe=('http://' + str(host) + ':' + str(session['port']) + '/?password=vncpassword'))
@@ -31,9 +39,10 @@ def index():
     else:
         session['username'] = randomStringDigits(10)
         print(session['username'])
-    port = random.randint(30000, 50000)
+    port = portlist[portcount]
+    portcount += 1
+    print(portcount)
     session['port'] = port
-    usedPorts.append(port)
     print(session['port'])
     session['name'] = randomStringDigits(10)
     name = session['name']
