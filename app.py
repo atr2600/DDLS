@@ -23,6 +23,16 @@ random.shuffle(portlist)
 portcount = 0
 
 host='127.0.0.1'
+
+@app.route('/destroy')
+def destroy():
+    name = session['name']
+    killDocker = 'docker rm -f ' + name
+    os.system(killDocker)
+    session.clear()
+    return 'Hello, World!'
+
+
 @app.route('/')
 def index():
     global portcount
