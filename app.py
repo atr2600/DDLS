@@ -22,7 +22,7 @@ portlist = list(range(30000,50000))
 random.shuffle(portlist)
 portcount = 0
 
-host='127.0.0.1'
+host='10.1.1.12'
 
 @app.route('/destroy')
 def destroy():
