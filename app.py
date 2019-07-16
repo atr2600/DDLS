@@ -8,6 +8,7 @@ import random
 import string
 import time
 from datetime import timedelta
+import subprocess
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -17,9 +18,12 @@ def randomStringDigits(stringLength=10):
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join(random.choice(lettersAndDigits) for i in range(stringLength))
 
+usedPorts = []
+
 host='127.0.0.1'
 @app.route('/')
 def index():
+    dockercount = int(subprocess.check_output("sudo docker container ls --all | wc -l",shell=True).decode("utf-8"))
     # print(activeUsers)
     if 'username' in session:
         # return render_template('index.html', async_mode=socketio.async_mode, iframe=('http://' + str(host) + ':' + str(session['port']) + '/?password=vncpassword'))
@@ -27,9 +31,10 @@ def index():
     else:
         session['username'] = randomStringDigits(10)
         print(session['username'])
-    session['port'] = random.randint(30000, 50000)
+    port = random.randint(30000, 50000)
+    session['port'] = port
+    usedPorts.append(port)
     print(session['port'])
-    port = session['port']
     session['name'] = randomStringDigits(10)
     name = session['name']
     startDocker = 'docker run -d --name ' + str(name) + ' -it --user 0 -p ' + str(port) + ':6901 atr2600/testdock'
