@@ -48,7 +48,7 @@ def destroy():
 def index():
     global portlist
     global namelist
-    dockercount = int(subprocess.check_output("docker container ls --all | wc -l",shell=True).decode("utf-8"))
+    dockercount = int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8"))
     #Sorry all out of containers html page... Create one!!
     if(dockercount>50):
         return render_template('index.html')
@@ -62,14 +62,15 @@ def index():
     namelist.append(container)
 
     dockerlist[container] = port;
-
-    startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 atr2600/testdock'
+    password = randomStringDigits(20)
+    startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
+        + password +' atr2600/testdock'
     killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
     os.system(startDocker)
     time.sleep(0.5)
     # this script will sleep for 60 min in the background first.
     os.system(killDocker)
-    url = ('http://' + str(host) + ':' + str(port) + '/?password=vncpassword')
+    url = ('http://' + str(host) + ':' + str(port) + '/?password=' + str(password))
     data = {
         'url': url,
         'container': container
