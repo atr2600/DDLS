@@ -30,6 +30,8 @@ host='10.1.1.12'
 
 @app.route('/destroy',methods=['POST'])
 def destroy():
+    global portlist
+    global namelist
     req_data = request.get_json()
     container = req_data['container']
     #killing docker container
@@ -44,7 +46,8 @@ def destroy():
 
 @app.route('/')
 def index():
-
+    global portlist
+    global namelist
     dockercount = int(subprocess.check_output("docker container ls --all | wc -l",shell=True).decode("utf-8"))
     #Sorry all out of containers html page... Create one!!
     if(dockercount>50):
@@ -53,8 +56,10 @@ def index():
     container = randomStringDigits(10)
     while port in portlist:
         port = random.randint(30000, 50000)
+    portlist.append(port)
     while container in namelist:
         container = randomStringDigits(10)
+    namelist.append(container)
 
     dockerlist[container] = port;
 
