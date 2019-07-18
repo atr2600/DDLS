@@ -33,8 +33,8 @@ def destroy():
     req_data = request.get_json()
     container = req_data['container']
     #killing docker container
-    os.system(killDocker)
     killDocker = 'docker rm -f ' + container
+    os.system(killDocker)
     # Cleaning up the port numbers and container name
     portlist.remove(dockerlist[container])
     namelist.remove(container)
@@ -67,7 +67,7 @@ def index():
     url = ('http://' + str(host) + ':' + str(port) + '/?password=vncpassword')
     data = {
         'url': url,
-        'container': container,
+        'container': container
     }
     js = json.dumps(data)
     resp = Response(js, status=200, mimetype='application/json')
