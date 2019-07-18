@@ -22,9 +22,9 @@ def randomStringDigits(stringLength=10):
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join(random.choice(lettersAndDigits) for i in range(stringLength))
 
-portlist = list(range(30000,50000))
-random.shuffle(portlist)
-portcount = 0
+portlist = []
+namelist = []
+dockerlist = {}
 
 host='10.1.1.12'
 
@@ -32,25 +32,32 @@ host='10.1.1.12'
 def destroy():
     req_data = request.get_json()
     container = req_data['container']
-    print('Killed: ' + container)
-    killDocker = 'docker rm -f ' + container
+    #killing docker container
     os.system(killDocker)
+    killDocker = 'docker rm -f ' + container
+    # Cleaning up the port numbers and container name
+    portlist.remove(dockerlist[container])
+    namelist.remove(container)
     session.clear()
     return 'Killed container: ' + container
 
 
 @app.route('/')
 def index():
-    global portcount
-    if portcount is 19995:
-        portcount = 0
-    dockercount = int(subprocess.check_output("sudo docker container ls --all | wc -l",shell=True).decode("utf-8"))
+
+    dockercount = int(subprocess.check_output("docker container ls --all | wc -l",shell=True).decode("utf-8"))
     #Sorry all out of containers html page... Create one!!
     if(dockercount>50):
         return render_template('index.html')
-    port = portlist[portcount]
-    portcount += 1
+    port = random.randint(30000, 50000)
     container = randomStringDigits(10)
+    while port in portlist:
+        port = random.randint(30000, 50000)
+    while container in namelist:
+        container = randomStringDigits(10)
+
+    dockerlist[container] = port;
+
     startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 atr2600/testdock'
     killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
     os.system(startDocker)
@@ -59,8 +66,8 @@ def index():
     os.system(killDocker)
     url = ('http://' + str(host) + ':' + str(port) + '/?password=vncpassword')
     data = {
-        'url'  : url,
-        'container' : container
+        'url': url,
+        'container': container,
     }
     js = json.dumps(data)
     resp = Response(js, status=200, mimetype='application/json')
