@@ -26,7 +26,7 @@ portlist = []
 namelist = []
 dockerlist = {}
 
-host='10.1.1.12'
+host='127.0.0.1'
 
 @app.route('/destroy',methods=['POST'])
 def destroy():
@@ -64,7 +64,7 @@ def index():
     dockerlist[container] = port;
     password = randomStringDigits(20)
     startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
-        + password +' atr2600/testdock'
+        + password +' atr2600/vnc-nmap-ubuntu'
     killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
     os.system(startDocker)
     time.sleep(0.5)
@@ -81,4 +81,4 @@ def index():
     return resp
 
 if __name__ == '__main__':
-    app.run(debug=True,host=host, port=5000)
+    app.run(debug=True,host=host, port=5000, ssl_context='adhoc')
