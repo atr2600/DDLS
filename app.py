@@ -28,7 +28,7 @@ portlist = []
 namelist = []
 dockerlist = {}
 
-host='127.0.0.1'
+host='10.1.1.12'
 
 
 def background_thread():
