@@ -68,7 +68,7 @@ def index():
     dockerlist[container] = port
     password = randomStringDigits(20)
     startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
-        + password VNC_RESOLUTION=800x600+' atr2600/zenmap-vnc-ubuntu'
+        + password + ' VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu'
     killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
     os.system(startDocker)
     time.sleep(0.5)
