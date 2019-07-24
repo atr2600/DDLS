@@ -71,7 +71,6 @@ def newContainer():
     session['port'] = generatePort()
     session['container'] = generateName()
     session['password'] = randomStringDigits(20)
-    newNetwork()
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
     newNetwork = 'docker network create --subnet=172.11.'+ str(networkCount % 256 ) + '.0/24 ' + str(session['container'])
