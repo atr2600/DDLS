@@ -115,9 +115,8 @@ def destroy():
     portlist.remove(dockerlist[session['container']])
     namelist.remove(session['container'])
     del dockerlist[session['container']]
+    print('Killed container: ' + session['container'])
     session.clear()
-    return 'Killed container: ' + session['container']
-
 
 ##################################################################################################################
 ##
