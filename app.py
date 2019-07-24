@@ -7,6 +7,11 @@ from flask import Flask, render_template, session, request, \
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, rooms, disconnect
 import os, random, subprocess,time, string
+import docker
+
+import eventlet
+
+eventlet.monkey_patch()
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -19,6 +24,9 @@ socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
 networkCount = 0
+# Docker client
+client = docker.from_env()
+
 
 # Using this to generate the names/passwords for the docer containers
 def randomStringDigits(stringLength=10):
@@ -73,7 +81,12 @@ def newContainer():
     session['password'] = randomStringDigits(20)
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
-    newNetwork = 'docker network create --subnet=172.11.'+ str(networkCount % 256 ) + '.0/24 ' + str(session['container'])
+    ##
+    ## NETWORK
+    ## OLD
+    newNetwork = 'docker network create --subnet=172.11.' + str(networkCount % 256 ) + '.0/24 ' + str(session['container'])
+    ## NEW
+
     os.system( newNetwork + ';docker run --net '+ str(session['container']) +' -d --name ' + str(session['container']) + ' -it --user 0 -p ' + str(session['port']) + ':6901 -e VNC_PW='\
         + session['password'] + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu')
     time.sleep(0.5)
@@ -149,7 +162,7 @@ def test_connect():
     with thread_lock:
         if thread is None:
             thread = socketio.start_background_task(background_thread)
-    emit('my_response', {'data': 'Connected', 'count': 0})
+    # emit('my_response', {'data': 'Connected', 'count': 0})
 
 
 @socketio.on('disconnect', namespace='/test')
