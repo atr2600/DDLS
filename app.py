@@ -18,6 +18,7 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
+networkCount = 0
 
 # Using this to generate the names/passwords for the docer containers
 def randomStringDigits(stringLength=10):
@@ -73,13 +74,19 @@ def newContainer():
     session['port'] = generatePort()
     session['container'] = generateName()
     session['password'] = randomStringDigits(20)
+    newNetwork()
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
-    os.system('docker run --net isolated -d --name ' + str(session['container']) + ' -it --user 0 -p ' + str(session['port']) + ':6901 -e VNC_PW='\
+    os.system('docker run --net '+ str(session['container']) +' -d --name ' + str(session['container']) + ' -it --user 0 -p ' + str(session['port']) + ':6901 -e VNC_PW='\
         + session['password'] + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu')
     time.sleep(0.5)
     # this script will sleep for 60 min in the background first.
     os.system('(sleep 30m; docker rm -f ' + str(session['container']) + ') &')
+
+def newNetwork():
+    global networkCount
+    os.system('docker network create --subnet=172.11.'+ str(networkCount % 256 ) + '.0/24 ' + str(session['container']))
+    network += 1
 
 @app.route('/')
 def index():
@@ -111,6 +118,7 @@ def destroy():
     global dockerlist
     #killing docker container
     os.system('docker rm -f ' + session['container'])
+    os.system('docker network rm ' + session['container'])
     # Cleaning up the port numbers and container name
     portlist.remove(dockerlist[session['container']])
     namelist.remove(session['container'])
