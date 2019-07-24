@@ -30,6 +30,7 @@ dockerlist = {}
 
 host='10.1.1.12'
 
+os.system("docker network create --subnet=172.11.1.0/24 isolated")
 
 def background_thread():
     """Example of how to send server generated events to clients."""
@@ -67,8 +68,8 @@ def index():
     # Adding this to the master list
     dockerlist[container] = port
     password = randomStringDigits(20)
-    startDocker = 'docker run -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
-        + password + ' VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu'
+    startDocker = 'docker run --net isolated -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
+        + password + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu'
     killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
     os.system(startDocker)
     time.sleep(0.5)
