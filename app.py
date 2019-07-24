@@ -37,11 +37,7 @@ dockerlist = {}
 # Change this to your current IP
 host='10.1.1.12'
 
-#####################################################################
-#   DOCKER
-#   NETWORK ZONE
-#####################################################################
-os.system("docker network create --subnet=172.11.1.0/24 isolated")
+
 
 def background_thread():
     """Example of how to send server generated events to clients."""
@@ -86,7 +82,7 @@ def newContainer():
 def newNetwork():
     global networkCount
     os.system('docker network create --subnet=172.11.'+ str(networkCount % 256 ) + '.0/24 ' + str(session['container']))
-    network += 1
+    networkCount += 1
 
 @app.route('/')
 def index():
