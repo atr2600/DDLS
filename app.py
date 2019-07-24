@@ -19,17 +19,27 @@ socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
 
+# Using this to generate the names/passwords for the docer containers
 def randomStringDigits(stringLength=10):
     """Generate a random string of letters and digits """
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join(random.choice(lettersAndDigits) for i in range(stringLength))
 
+# List of the current ports in use
 portlist = []
+# List of the current names in use
 namelist = []
+# Map of the names to ports
+# This is used to delete containers and remove the associated ports. 
 dockerlist = {}
 
+# Change this to your current IP
 host='10.1.1.12'
 
+#####################################################################
+#   DOCKER
+#   NETWORK ZONE
+#####################################################################
 os.system("docker network create --subnet=172.11.1.0/24 isolated")
 
 def background_thread():
@@ -42,6 +52,34 @@ def background_thread():
                       {'data': 'Server generated event', 'count': count},
                       namespace='/test')
 
+def spaceForDocker():
+    return bool(int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8")) > 50)
+
+def generatePort():
+    port = random.randint(30000, 50000)
+    while port in portlist:
+        port = random.randint(30000, 50000)
+    portlist.append(port)
+    return port
+
+def generateName():
+    container = randomStringDigits(10)
+    while container in namelist:
+        container = randomStringDigits(10)
+    namelist.append(container)
+    return container
+
+def newContainer():
+    session['port'] = generatePort()
+    session['container'] = generateName()
+    session['password'] = randomStringDigits(20)
+    # Adding this to the master list
+    dockerlist[session['container']] = session['port']
+    os.system('docker run --net isolated -d --name ' + str(session['container']) + ' -it --user 0 -p ' + str(session['port']) + ':6901 -e VNC_PW='\
+        + session['password'] + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu')
+    time.sleep(0.5)
+    # this script will sleep for 60 min in the background first.
+    os.system('(sleep 30m; docker rm -f ' + str(session['container']) + ') &')
 
 @app.route('/')
 def index():
@@ -49,51 +87,43 @@ def index():
     global namelist
     global dockerlist
     print(dockerlist)
-    dockercount = int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8"))
+    
     #Sorry all out of containers html page... Create one!!
-    if(dockercount>50):
+    if(spaceForDocker()):
         return render_template('index.html')
-    # Creating a random port number and container ID number
-    port = random.randint(30000, 50000)
-    container = randomStringDigits(10)
-    while port in portlist:
-        port = random.randint(30000, 50000)
-    portlist.append(port)
-    while container in namelist:
-        container = randomStringDigits(10)
-    namelist.append(container)
-    # Adding this to the session
-    session['port'] = port
-    session['container'] = container
-    # Adding this to the master list
-    dockerlist[container] = port
-    password = randomStringDigits(20)
-    startDocker = 'docker run --net isolated -d --name ' + str(container) + ' -it --user 0 -p ' + str(port) + ':6901 -e VNC_PW='\
-        + password + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu'
-    killDocker = '(sleep 30m; docker rm -f ' + str(container) + ') &'
-    os.system(startDocker)
-    time.sleep(0.5)
-    # this script will sleep for 60 min in the background first.
-    os.system(killDocker)
-    url = ('http://' + str(host) + ':' + str(port) + '/?password=' + str(password))
+    
+    newContainer()
+
+    url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
     return render_template('index.html', iframe = url, async_mode=socketio.async_mode)
 
 
+  ####
+  ## This function does:
+  ## 1. Removes the port and name from the portlist and namelist
+  ## 2. Removes the container from the master list.
+  ## 3. Clears the session
+  ## 4. Sends kill docker command to the system. 
+####
 def destroy():
     global portlist
     global namelist
     global dockerlist
-    container = session['container']
     #killing docker container
-    killDocker = 'docker rm -f ' + container
-    os.system(killDocker)
+    os.system('docker rm -f ' + session['container'])
     # Cleaning up the port numbers and container name
-    portlist.remove(dockerlist[container])
-    namelist.remove(container)
-    del dockerlist[container]
+    portlist.remove(dockerlist[session['container']])
+    namelist.remove(session['container'])
+    del dockerlist[session['container']]
     session.clear()
-    return 'Killed container: ' + container
+    return 'Killed container: ' + session['container']
 
+
+##################################################################################################################
+##
+## Below area is for the socket.io. 
+## This checks to see if the connection is live.
+##################################################################################################################
 
 @socketio.on('disconnect_request', namespace='/test')
 def disconnect_request():
