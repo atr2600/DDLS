@@ -34,8 +34,9 @@ socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
 networkCount = 0
-# Docker client
-client = docker.from_env()
+# Docker limit
+docker_limit = 100
+
 
 
 # Using this to generate the names/passwords for the docer containers
@@ -52,6 +53,7 @@ namelist = []
 # Map of the names to ports
 # This is used to delete containers and remove the associated ports. 
 dockerlist = {}
+client = docker.from_env()
 
 # Change this to your current IP
 # host = '127.0.0.1'
@@ -68,8 +70,8 @@ def background_thread():
                       namespace='/test')
 
 
-def spaceForDocker():
-    return bool(int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8")) > 50)
+def spaceForDocker(count):
+    return bool(int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8")) > count)
 
 
 def generatePort():
@@ -111,7 +113,7 @@ def newNetwork(subnet):
     )
 
 
-def newContainer():
+def newContainer(imageName):
     global networkCount
     session['port'] = generatePort()
     session['container'] = generateName()
@@ -119,7 +121,7 @@ def newContainer():
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
     newNetwork(('172.11.' + str(networkCount % 256) + '.0/24'))
-    client.containers.run('atr2600/zenmap-vnc-ubuntu',
+    client.containers.run(imageName,
                           tty=True,
                           detach=True,
                           network=str(session['container']),
@@ -131,6 +133,12 @@ def newContainer():
     networkCount += 1
 
 
+def getDocker(imageName):
+    newContainer(imageName)
+    url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
+    print(url)
+    return url
+
 @app.route('/')
 def index():
     global portlist
@@ -139,14 +147,13 @@ def index():
     print(dockerlist)
 
     # Sorry all out of containers html page... Create one!!
-    if (spaceForDocker()):
+    if spaceForDocker(docker_limit):
         return render_template('error.html')
 
-    newContainer()
-
-    url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
-    print(url)
+    url = getDocker('atr2600/zenmap-vnc-ubuntu')
     return render_template('index.html', iframe=url, async_mode=socketio.async_mode)
+
+
 
 
 ####
