@@ -44,7 +44,7 @@ namelist = []
 dockerlist = {}
 
 # Change this to your current IP
-host = '127.0.0.1'
+host = '10.1.1.12'
 
 
 
@@ -83,8 +83,7 @@ def newContainer():
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
     ipam_pool = docker.types.IPAMPool(
-        subnet='172.11.' + str(networkCount % 256) + '.0/24',
-        gateway='172.11.' + str(networkCount % 256) + '.254'
+        subnet='172.11.' + str(networkCount % 256) + '.0/24'        
     )
     ipam_config = docker.types.IPAMConfig(
         pool_configs=[ipam_pool]
