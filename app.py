@@ -1,18 +1,27 @@
 #!/usr/bin/env python
 
-# IMPORTS
+import random
+import string
+import subprocess
+import socket
 from threading import Lock
+# Docker Stuff
+import docker
+# Websocket stuff
+import eventlet
+from docker import *
 from flask import Flask, render_template, session, request, \
     copy_current_request_context
-from flask_socketio import SocketIO, emit, join_room, leave_room, \
-    close_room, rooms, disconnect
-import os, random, subprocess,time, string
-import docker
-from docker import *
+from flask_socketio import SocketIO, emit, disconnect
 
-import eventlet
 
 eventlet.monkey_patch()
+
+# This is a hack solution to get the IP address of the current system.
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+host = s.getsockname()[0]
+print("This host ip is: " + host)
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -35,6 +44,7 @@ def randomStringDigits(stringLength=10):
     lettersAndDigits = string.ascii_letters + string.digits
     return ''.join(random.choice(lettersAndDigits) for i in range(stringLength))
 
+
 # List of the current ports in use
 portlist = []
 # List of the current names in use
@@ -44,8 +54,7 @@ namelist = []
 dockerlist = {}
 
 # Change this to your current IP
-host = '10.1.1.12'
-
+# host = '127.0.0.1'
 
 
 def background_thread():
@@ -58,8 +67,10 @@ def background_thread():
                       {'data': 'Server generated event', 'count': count},
                       namespace='/test')
 
+
 def spaceForDocker():
     return bool(int(subprocess.check_output("docker container ls --all | wc -l", shell=True).decode("utf-8")) > 50)
+
 
 def generatePort():
     port = random.randint(30000, 50000)
@@ -68,12 +79,37 @@ def generatePort():
     portlist.append(port)
     return port
 
+
 def generateName():
     container = randomStringDigits(10)
     while container in namelist:
         container = randomStringDigits(10)
     namelist.append(container)
     return container
+
+
+# This function creates a new docker network with a unique subnet
+def newNetwork(subnet):
+
+    # class IPAMPool(subnet=None, iprange=None, gateway=None, aux_addresses=None)
+    #       Create an IPAM pool config dictionary to be added to the pool_configs parameter of IPAMConfig.
+    ipam_pool = docker.types.IPAMPool(
+        subnet=subnet
+    )
+
+    # class IPAMConfig(driver='default', pool_configs=None, options=None)
+    #       Create an IPAM (IP Address Management) config dictionary to be used with create_network().
+    ipam_config = docker.types.IPAMConfig(
+        pool_configs=[ipam_pool]
+    )
+
+    #  create(name, *args, **kwargs)
+    #       Create a network. Similar to the docker network create.
+    client.networks.create(
+        str(session['container']),
+        ipam=ipam_config
+    )
+
 
 def newContainer():
     global networkCount
@@ -82,16 +118,7 @@ def newContainer():
     session['password'] = randomStringDigits(20)
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
-    ipam_pool = docker.types.IPAMPool(
-        subnet='172.11.' + str(networkCount % 256) + '.0/24'        
-    )
-    ipam_config = docker.types.IPAMConfig(
-        pool_configs=[ipam_pool]
-    )
-    client.networks.create(
-        str(session['container']),
-        ipam=ipam_config
-    )
+    newNetwork(('172.11.' + str(networkCount % 256) + '.0/24'))
     client.containers.run('atr2600/zenmap-vnc-ubuntu',
                           tty=True,
                           detach=True,
@@ -104,38 +131,36 @@ def newContainer():
     networkCount += 1
 
 
-
 @app.route('/')
 def index():
     global portlist
     global namelist
     global dockerlist
     print(dockerlist)
-    
-    #Sorry all out of containers html page... Create one!!
-    if(spaceForDocker()):
-        return render_template('index.html')
-    
-    newContainer()
 
+    # Sorry all out of containers html page... Create one!!
+    if (spaceForDocker()):
+        return render_template('error.html')
+
+    newContainer()
 
     url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
     print(url)
-    return render_template('index.html', iframe = url, async_mode=socketio.async_mode)
+    return render_template('index.html', iframe=url, async_mode=socketio.async_mode)
 
 
-  ####
-  ## This function does:
-  ## 1. Removes the port and name from the portlist and namelist
-  ## 2. Removes the container from the master list.
-  ## 3. Clears the session
-  ## 4. Sends kill docker command to the system. 
+####
+## This function does:
+## 1. Removes the port and name from the portlist and namelist
+## 2. Removes the container from the master list.
+## 3. Clears the session
+## 4. Sends kill docker command to the system.
 ####
 def destroy():
     global portlist
     global namelist
     global dockerlist
-    #killing docker container
+    # killing docker container
     client.containers.get(session['container']).remove(force=True)
     client.networks.prune(filters=None)
     # Cleaning up the port numbers and container name
@@ -144,6 +169,7 @@ def destroy():
     del dockerlist[session['container']]
     print('Killed container: ' + session['container'])
     session.clear()
+
 
 ##################################################################################################################
 ##
