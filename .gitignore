@@ -1,3 +1,4 @@
 # Ignoring all keys
 *.pem
 app/
+.ides/
