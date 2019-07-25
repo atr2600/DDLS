@@ -8,6 +8,7 @@ from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, rooms, disconnect
 import os, random, subprocess,time, string
 import docker
+from docker import *
 
 import eventlet
 
@@ -43,7 +44,7 @@ namelist = []
 dockerlist = {}
 
 # Change this to your current IP
-host='10.1.1.12'
+host = '127.0.0.1'
 
 
 
@@ -81,17 +82,26 @@ def newContainer():
     session['password'] = randomStringDigits(20)
     # Adding this to the master list
     dockerlist[session['container']] = session['port']
-    ##
-    ## NETWORK
-    ## OLD
-    newNetwork = 'docker network create --subnet=172.11.' + str(networkCount % 256 ) + '.0/24 ' + str(session['container'])
-    ## NEW
-
-    os.system( newNetwork + ';docker run --net '+ str(session['container']) +' -d --name ' + str(session['container']) + ' -it --user 0 -p ' + str(session['port']) + ':6901 -e VNC_PW='\
-        + session['password'] + ' -e VNC_RESOLUTION=800x600 atr2600/zenmap-vnc-ubuntu')
-    time.sleep(0.5)
-    # this script will sleep for 60 min in the background first.
-    os.system('(sleep 30m; docker rm -f ' + str(session['container']) + ') &')
+    ipam_pool = docker.types.IPAMPool(
+        subnet='172.11.' + str(networkCount % 256) + '.0/24',
+        gateway='172.11.' + str(networkCount % 256) + '.254'
+    )
+    ipam_config = docker.types.IPAMConfig(
+        pool_configs=[ipam_pool]
+    )
+    client.networks.create(
+        str(session['container']),
+        ipam=ipam_config
+    )
+    client.containers.run('atr2600/zenmap-vnc-ubuntu',
+                          tty=True,
+                          detach=True,
+                          network=str(session['container']),
+                          name=str(session['container']),
+                          user='0',
+                          ports={'6901/tcp': str(session['port'])},
+                          environment=["VNC_PW=" + str(session['password']),
+                                       "VNC_RESOLUTION=800x600"])
     networkCount += 1
 
 
@@ -109,7 +119,9 @@ def index():
     
     newContainer()
 
+
     url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
+    print(url)
     return render_template('index.html', iframe = url, async_mode=socketio.async_mode)
 
 
@@ -125,8 +137,8 @@ def destroy():
     global namelist
     global dockerlist
     #killing docker container
-    os.system('docker rm -f ' + session['container'])
-    os.system('docker network rm ' + session['container'])
+    client.containers.get(session['container']).remove(force=True)
+    client.networks.prune(filters=None)
     # Cleaning up the port numbers and container name
     portlist.remove(dockerlist[session['container']])
     namelist.remove(session['container'])
