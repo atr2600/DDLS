@@ -28,7 +28,7 @@ sudo apt-get install python3-pip
 ```
 ## Step 3: Install pip requirments. 
 ```
-sudo pip install -r requirments
+sudo pip3 install -r requirments
 ```
 ## Step 4: Run the app
 ```
