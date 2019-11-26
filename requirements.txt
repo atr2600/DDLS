@@ -10,3 +10,5 @@ python-engineio>=3.9.0
 python-socketio==4.2.0
 six==1.12.0
 Werkzeug==0.15.5
+flask-sqlalchemy
+flask-login
