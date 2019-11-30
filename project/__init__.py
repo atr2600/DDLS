@@ -1,12 +1,9 @@
 # init.py
-
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_security import *
 import socket
-import docker
-from docker import *
-
 # init SQLAlchemy so we can use it later in our models
 db = SQLAlchemy()
 

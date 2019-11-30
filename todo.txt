@@ -1,0 +1,7 @@
+!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!
+We need to use a custom value to maintain these containers/networks..
+
+when a user logins maybe we can use the email to generate a unique ID?
+
+We could just use the email address to maintain networks and containers... might
+be easier but definitely will make things easier to

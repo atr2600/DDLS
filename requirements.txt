@@ -1,3 +1,4 @@
+sqlalchemy
 eventlet
 docker
 Click==7.0

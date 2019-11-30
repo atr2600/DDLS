@@ -1,37 +1,21 @@
-# main.py
-
 from flask import Blueprint, render_template, session, redirect
 from flask_login import login_required, current_user
 from . import *
-
-# ======================================================================
-# Start Docker py imports
-# ======================================================================
-
 import random
 import string
 import subprocess
 import docker
 from docker import *
 
-# ======================================================================
-# End Docker py imports
-# ======================================================================
-
 main = Blueprint('main', __name__)
 
 networkCount = 0
-# Docker limit
 docker_limit = 100
-# List of the current ports in use
 portlist = []
-# List of the current names in use
 namelist = []
-# Map of the names to ports
-# This is used to delete containers and remove the associated ports.
+nameurl = {}
 dockerlist = {}
 client = docker.from_env()
-
 
 
 @main.route('/profile')
@@ -86,10 +70,14 @@ def newNetwork(subnet):
 
     #  create(name, *args, **kwargs)
     #       Create a network. Similar to the docker network create.
-    client.networks.create(
-        str(session['container']),
-        ipam=ipam_config
-    )
+    try:
+        client.networks.create(
+            str(session['container']),
+            ipam=ipam_config
+        )
+    except RuntimeError as e:
+        print("WARNING!!! Network already exists.")
+        print(e)
 
 
 def newContainer(imageName):
@@ -113,12 +101,27 @@ def newContainer(imageName):
                                        "VNC_RESOLUTION=800x600"])
     networkCount += 1
 
+def check():
+    email = current_user.email
+    if email in namelist:
+        return True
+    else:
+        return False
+
 
 def getDocker(imageName):
-    newContainer(imageName)
-    url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
-    print(url)
-    return url
+
+    global namelist
+    global nameurl
+    print(nameurl)
+    if nameurl.get(str(current_user.email))is not None:
+        return nameurl[str(current_user.email)]
+    else:
+        newContainer(imageName)
+        url = ('http://' + str(host) + ':' + str(session['port']) + '/?password=' + str(session['password']))
+        print(url)
+        nameurl[str(current_user.email)] = url
+        return nameurl[str(current_user.email)]
 
 
 @main.route('/')
@@ -129,13 +132,16 @@ def index():
     global dockerlist
     global docker_limit
     print(dockerlist)
-
     # Sorry all out of containers html page... Create one!!
     if spaceForDocker(docker_limit):
         return render_template('error.html')
-
     url = getDocker('atr2600/zenmap-vnc-ubuntu')
     return redirect(url)
+
+
+# @main.route('/admin')
+#     @
+# def index():
 
 
 ####
