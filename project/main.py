@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect
+from flask import Blueprint, render_template, session, redirect, request, jsonify
 from flask_login import login_required, current_user
 from . import *
 import random
@@ -16,6 +16,7 @@ namelist = []
 nameurl = {}
 dockerlist = {}
 client = docker.from_env()
+number_of_subnets = 0
 
 
 @main.route('/profile')
@@ -139,9 +140,22 @@ def index():
     return redirect(url)
 
 
-# @main.route('/admin')
-#     @
-# def index():
+# Yes this should be limited to only the admin role..
+# I do not have enough time to implement this right now.
+@main.route('/admin', methods=['GET', 'POST'])
+def admin():
+    global number_of_subnets
+
+    # Here we are going to get some settings from the admin.
+
+    if request.method == 'POST':
+        number_of_subnets = request.form.get('number_of_subnets')
+        return redirect('/admin')
+
+
+    if request.method == 'GET':
+        return render_template("admin.html")
+
 
 
 ####
