@@ -125,6 +125,20 @@ def getDocker(imageName):
         return nameurl[str(current_user.email)]
 
 
+@main.route('/router')
+def router():
+    global portlist
+    global namelist
+    global dockerlist
+    global docker_limit
+    print(dockerlist)
+    # Sorry all out of containers html page... Create one!!
+    if spaceForDocker(docker_limit):
+        return render_template('error.html')
+    url = getDocker('atr2600/zenmap-vnc-ubuntu')
+    return redirect(url)
+
+
 @main.route('/')
 @login_required
 def index():
