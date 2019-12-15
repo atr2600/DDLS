@@ -1,4 +1,4 @@
-# docker_vnc_webapp
+# Desktop Docker Lab System
 Python/Flask webapp that spins up docker desktops
 
 
